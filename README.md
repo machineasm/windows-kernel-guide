@@ -1,5 +1,6 @@
-# Understanding the Windows Kernel: A Developer's Guide 
+# Understanding Kernel Drivers - seized
 
+# What is the Windows kernel?
 ## Introduction 
 
 The Windows operating system relies on a complex architecture that includes the user space and the kernel space. The kernel is a critical component responsible for managing hardware resources, providing essential services, and ensuring the overall stability of the system. As a developer, understanding the basics of the Windows kernel is crucial for building robust and efficient applications. This document aims to provide an overview of key concepts related to the Windows kernel. 
@@ -20,9 +21,9 @@ The Process Manager oversees the creation, scheduling, and termination of proces
 
 3. Memory Management 
 
-Memory Management is responsible for allocating and deallocating memory resources. It ensures that each process has the necessary memory space and protects processes from interfering with each other's memory. Understanding memory management is crucial for writing efficient and stable applications. 
+Memory Management is responsible for allocating and deallocating memory resources. It ensures that each process has the necessary memory space and protects processes from interfering with each other's memory. Understanding memory management is crucial for writing efficient and stable applications. Below is an example on how memory management could look like from a kernel driver.
 
-![image](https://github.com/machineasm/windows-kernel-guide/assets/157221855/0ad6175b-5e30-4b14-b19e-c8d821597d2f)
+![image](https://github.com/machineasm/windows-kernel-guide/assets/157221855/2b353f5c-e98b-4a76-9efb-309a4c446b89)
 
 4. I/O Management 
 
@@ -44,66 +45,34 @@ Developers can extend or enhance the functionality of the Windows kernel through
 
 It is essential to adhere to Microsoft's guidelines and best practices when developing kernel-mode drivers to ensure compatibility, stability, and security. 
 
-# Understanding the Windows Kernel: IOCTL Drivers 
+# Understanding Kernel Drivers - IOCTL's and anticheats (Fortnite - EAC, BE)
 
-## Introduction 
+## EasyAntiCheat Kernel Mode Detections
 
-In the realm of Windows kernel development, Input/Output Control (IOCTL) drivers play a crucial role in enabling communication between user-mode applications and kernel-mode drivers. This document aims to provide developers with a clear understanding of basic concepts related to Windows IOCTL drivers. 
+1. Manual Mapping Method:
+You may be detected or kicked for not adequately clearing traces of your mapper or vulnerable driver. In the case of EAC, it is essential to clear PiDBBCache, MmUnloadedDrivers and WDFilters. While some claim that BattlEye (BE) doesn't check these, I still recommend clearing them to be cautious.
 
-## What is an IOCTL Driver? 
+2. Big Pools:
+EAC does have functions in its driver to scan for large memory pools, although it is unclear if they are actively banning for them. It is advisable to spoof the entry in the big pool table. Note that big pools are not necessary for allocating memory for your driver, but alternative methods should be explored.
 
-An IOCTL driver is a type of kernel-mode driver that allows user-mode applications to send control codes, known as IOCTL codes, to the driver. These codes convey specific instructions or requests to the driver, enabling communication and control of hardware devices or other kernel-mode components. 
+3. Threads:
+When using sockets or shared memory for communication, it is crucial to hide your threads. This can be achieved by spoofing the entry (replacing it with a dummy thread) or unlinking it from the list, though the latter may cause some issues. Additionally, hide the thread's call stack and spoof the start address. Avoid leaving any strings; instead, loop through entries and compare hashes. To prevent additional signature scans, randomize bytes in unused sections or mark them as a DISCARD section and erase them.
 
-## Key Components of IOCTL Drivers 
+There are likely more methods, but these are the ones that immediately come to mind.
 
-1. IOCTL Codes 
+4. Hooking:
+If you intend to hook a syscall in win32kbase/ntoskrnl (.data pointer or vmt swap), route it to another memory destination located in a legitimate driver (forward it to a non-essential function, etc.), and then to your driver. While this step might not be necessary for BattlEye (BE), it is highly recommended for EAC. Although direct detection is uncertain, a recent update in December may have tapped into this method.
 
-IOCTL codes are numeric values that define specific operations or commands that user-mode applications can send to the IOCTL driver. These codes are typically defined in header files and serve as a standardized interface for communication between user-mode and kernel-mode components. 
+5. Common flags
+- MmCopyVirtualMemory
+- KeAttachProcess, KeDetachProcess, KeStackAttachProcess, KeUnstackDetachProcess
+- Not setting the PFN's to zero
+- Not clearing big pools
 
-2. Device Interface 
+6. NMI Callbacks
+Non-Maskable Interrupt (NMI) callbacks may be utilized as low-level system programming techniques to detect and respond to unauthorized activities by creating interrupts that cannot be ignored or disabled through normal means, thereby allowing for real-time monitoring and intervention at a kernel level to enhance the security and integrity of the game.
 
-IOCTL drivers are associated with a device interface, which serves as the entry point for user-mode applications to communicate with the driver. Developers need to define and register the device interface to establish a communication channel between the user and kernel modes. 
+and many more but these are the main ones
 
-3. Processing IOCTL Requests 
-
-When the IOCTL driver receives a request from a user-mode application, it must implement the necessary logic to process the request based on the provided IOCTL code. This involves interpreting the code, performing the required actions, and returning the result to the user-mode application. 
-
-4. I/O Request Packets (IRPs) 
-
-IOCTL drivers often use I/O Request Packets (IRPs) to represent and process requests. An IRP encapsulates information about an I/O operation, including the IOCTL code, input/output buffers, and other relevant parameters. Proper handling of IRPs is essential for the correct functioning of IOCTL drivers. 
-
-## Developing IOCTL Drivers 
-
-Developers can create IOCTL drivers to extend the functionality of the Windows operating system or to control specific hardware devices. The following steps provide a general overview of the IOCTL driver development process: 
-
-## Define IOCTL Codes: 
-
-Enumerate and define IOCTL codes that correspond to the desired operations. 
-
-## Implement IOCTL Processing Logic: 
-
-Write the logic to handle IOCTL requests based on the defined codes. 
-
-## Register Device Interface: 
-
-Register the device interface to establish communication between user-mode applications and the driver. 
-
-## Handle IRPs: 
-
-Implement logic to handle I/O Request Packets, including IOCTL requests. 
-
-## Testing and Debugging: 
-
-Thoroughly test and debug the IOCTL driver to ensure proper functionality and error handling. 
-
-## Driver Signing: 
-
-Sign the driver to facilitate loading on Windows systems. 
-
- 
-
- 
-
- 
-
- 
+- ## BattlEye Kernel Mode Detections
+Please refer to this detailed UnknownCheats post: https://www.unknowncheats.me/forum/anti-cheat-bypass/505404-battleye-kernel-module-detection-depth-analysis.html

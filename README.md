@@ -22,6 +22,8 @@ The Process Manager oversees the creation, scheduling, and termination of proces
 
 Memory Management is responsible for allocating and deallocating memory resources. It ensures that each process has the necessary memory space and protects processes from interfering with each other's memory. Understanding memory management is crucial for writing efficient and stable applications. 
 
+![image](https://github.com/machineasm/windows-kernel-guide/assets/157221855/0ad6175b-5e30-4b14-b19e-c8d821597d2f)
+
 4. I/O Management 
 
 The I/O Manager handles input and output operations, including interactions with devices such as disk drives and network interfaces. Developers use the Windows Driver Model (WDM) to create device drivers that communicate with the I/O Manager. 
@@ -33,6 +35,8 @@ System calls act as an interface between user-mode applications and the kernel. 
 6. Kernel Mode vs. User Mode 
 
 Windows operates in two modes: Kernel Mode and User Mode. Kernel Mode has unrestricted access to hardware resources, while User Mode is more restricted. User-mode applications interact with the kernel through system calls, ensuring a separation between user and kernel spaces for security and stability. 
+
+![image](https://github.com/machineasm/windows-kernel-guide/assets/157221855/cfa8e347-b5d3-4c3a-8158-4dbbd3012b38)
 
 ## Developing for the Windows Kernel 
 

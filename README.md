@@ -56,9 +56,7 @@ You may be detected or kicked for not adequately clearing traces of your mapper 
 EAC does have functions in its driver to scan for large memory pools, although it is unclear if they are actively banning for them. It is advisable to spoof the entry in the big pool table. Note that big pools are not necessary for allocating memory for your driver, but alternative methods should be explored.
 
 3. Threads:
-When using sockets or shared memory for communication, it is crucial to hide your threads. This can be achieved by spoofing the entry (replacing it with a dummy thread) or unlinking it from the list, though the latter may cause some issues. Additionally, hide the thread's call stack and spoof the start address. Avoid leaving any strings; instead, loop through entries and compare hashes. To prevent additional signature scans, randomize bytes in unused sections or mark them as a DISCARD section and erase them.
-
-There are likely more methods, but these are the ones that immediately come to mind.
+When using sockets or shared memory for communication, it is crucial to hide your threads. This can be achieved by spoofing the entry (replacing it with a dummy thread) or unlinking it from the list, though the latter may cause some issues. Additionally, hide the thread's call stack and spoof the start address. Avoid leaving any strings; instead, loop through entries and compare hashes. To prevent additional signature scans, randomize bytes in unused sections or mark them as a DISCARD section and erase them. *There are likely more methods, but these are the ones that immediately come to mind.*
 
 4. Hooking:
 If you intend to hook a syscall in win32kbase/ntoskrnl (.data pointer or vmt swap), route it to another memory destination located in a legitimate driver (forward it to a non-essential function, etc.), and then to your driver. While this step might not be necessary for BattlEye (BE), it is highly recommended for EAC. Although direct detection is uncertain, a recent update in December may have tapped into this method.
@@ -72,7 +70,85 @@ If you intend to hook a syscall in win32kbase/ntoskrnl (.data pointer or vmt swa
 6. NMI Callbacks
 Non-Maskable Interrupt (NMI) callbacks may be utilized as low-level system programming techniques to detect and respond to unauthorized activities by creating interrupts that cannot be ignored or disabled through normal means, thereby allowing for real-time monitoring and intervention at a kernel level to enhance the security and integrity of the game.
 
-and many more but these are the main ones
+...and many more but these are the main detections of EasyAntiCheat.
 
 - ## BattlEye Kernel Mode Detections
 Please refer to this detailed UnknownCheats post: https://www.unknowncheats.me/forum/anti-cheat-bypass/505404-battleye-kernel-module-detection-depth-analysis.html
+
+# Understanding Kernel Drivers - IOCTL's
+
+In Windows, an Input/Output Control (IOCTL) driver is a type of device driver that allows applications to communicate with and control a device by sending control codes through I/O request packets (IRPs). These control codes are often defined by the device driver and are used to perform specific operations on the device.
+
+## Device Initialization:
+
+The driver registers itself with the Windows I/O manager during device initialization.
+The driver specifies a Dispatch function to handle various types of IRPs, including IRPs with IOCTL requests.
+
+## IOCTL Codes:
+
+The IOCTL codes are numeric values that define the specific operation to be performed on the device.
+IOCTL codes are often defined in header files and shared between the driver and user-mode applications.
+
+## User-Mode Application Interaction:
+
+User-mode applications use APIs like DeviceIoControl to communicate with the device driver.
+These applications pass IOCTL codes along with input/output buffers to the driver.
+
+## Dispatch Routine:
+
+The driver's Dispatch routine handles IRPs with IOCTL requests.
+The routine extracts the IOCTL code from the IRP and processes the request accordingly.
+The driver may use switch statements or similar constructs to determine the action based on the IOCTL code.
+
+## Processing IOCTL Requests:
+
+The driver performs the necessary operations based on the IOCTL code.
+Input and output buffers may be exchanged between the user-mode application and the driver to pass data.
+
+```c++
+#include <ntddk.h>
+
+// Define IOCTL code (this is just an example)
+#define IOCTL_MY_CUSTOM_OPERATION CTL_CODE(FILE_DEVICE_UNKNOWN, 0x800, METHOD_BUFFERED, FILE_ANY_ACCESS)
+
+// Dispatch routine for handling IOCTL requests
+NTSTATUS MyDriverDispatchIoctl(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
+{
+    UNREFERENCED_PARAMETER(DeviceObject);
+
+    NTSTATUS status = STATUS_SUCCESS;
+    PIO_STACK_LOCATION irpStack = IoGetCurrentIrpStackLocation(Irp);
+
+    switch (irpStack->Parameters.DeviceIoControl.IoControlCode)
+    {
+    case IOCTL_MY_CUSTOM_OPERATION:
+        // Handle custom IOCTL operation
+        // Access input/output buffers using Irp->AssociatedIrp.SystemBuffer
+        // Perform necessary operations, for example reading and writing
+        break;
+
+    default:
+        status = STATUS_INVALID_PARAMETER;
+        break;
+    }
+
+    // Complete the IRP
+    Irp->IoStatus.Status = status;
+    IoCompleteRequest(Irp, IO_NO_INCREMENT);
+
+    return status;
+}
+
+// DriverEntry function
+extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING RegistryPath)
+{
+    UNREFERENCED_PARAMETER(RegistryPath);
+
+    DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = MyDriverDispatchIoctl;
+
+    // ... (other initialization code)
+
+    return STATUS_SUCCESS;
+}
+```
+

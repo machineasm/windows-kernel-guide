@@ -45,7 +45,7 @@ Developers can extend or enhance the functionality of the Windows kernel through
 
 It is essential to adhere to Microsoft's guidelines and best practices when developing kernel-mode drivers to ensure compatibility, stability, and security. 
 
-# Understanding Kernel Drivers - IOCTL's and anticheats (Fortnite - EAC, BE)
+# Understanding Kernel Drivers - Anticheat Detections
 
 ## EasyAntiCheat Kernel Mode Detections
 
